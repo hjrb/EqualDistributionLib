@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="EqualDistributionLib/EqualDistributionLib.csproj" />
+  <Project Path="EqualDistributionTest/EqualDistributionTest.csproj" />
+</Solution>
