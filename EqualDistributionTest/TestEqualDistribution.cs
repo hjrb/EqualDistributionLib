@@ -65,9 +65,9 @@ public sealed class TestEqualDistribution
 			.GroupBy(a => a.key)
 			.ToDictionary(g => g.Key, g => (ICollection<TestItem>)g.ToList());
 		notInBin = items.Count(a => !bins.ContainsKey(a.key));
-		EqualDistribution.DumpBins(bins, Console.WriteLine);
-		var result=await EqualDistribution.DistributeEquallyAsync(items, a => a.key, bins, null);
-		EqualDistribution.DumpBins(bins, Console.WriteLine);
+		DumpBins(bins, Console.WriteLine);
+		var result=await DistributeEquallyAsync(items, a => a.key, bins, null);
+		DumpBins(bins, Console.WriteLine);
 		AssertDistribution(bins.GroupBy(a => a.Key).Select(g => new BinItem<int> { PropertyValue = g.Key, Count = g.Count() }).ToList());
 
 		var mustUpdateKey=result.ToList();
@@ -91,9 +91,9 @@ public sealed class TestEqualDistribution
 				.GroupBy(a => a.key)
 				.ToDictionary(g => g.Key, g => (ICollection<TestItem>)g.ToList());
 		notInBin = items.Count(a => !bins.ContainsKey(a.key));
-		EqualDistribution.DumpBins(bins, Console.WriteLine);
-		var result=await EqualDistribution.DistributeEquallyAsync(items, a => a.key, bins, null);
-		EqualDistribution.DumpBins(bins, Console.WriteLine);
+		DumpBins(bins, Console.WriteLine);
+		var result=await DistributeEquallyAsync(items, a => a.key, bins, null);
+		DumpBins(bins, Console.WriteLine);
 		AssertDistribution(bins.GroupBy(a => a.Key).Select(g => new BinItem<int> { PropertyValue = g.Key, Count = g.Count() }).ToList());
 		var mustUpdateKey=result.ToList();
 		Console.WriteLine($"Items not in bin: {notInBin}, items to update key: {mustUpdateKey.Count()}");
@@ -101,9 +101,9 @@ public sealed class TestEqualDistribution
 
 	private static void AssertDistribution<T>(List<BinItem<T>> bins) where T : notnull, IEquatable<T>
 	{
-		var totalItems= EqualDistribution.TotalItemsCount(bins);
-		var lowPerBin= EqualDistribution.MinItemsPerBin(bins);
-		var highPerBin=EqualDistribution.MaxItemsPerBin(bins);
+		var totalItems= TotalItemsCount(bins);
+		var lowPerBin= MinItemsPerBin(bins);
+		var highPerBin=MaxItemsPerBin(bins);
 		Console.WriteLine($"Total items: {totalItems}, Bins: {bins.Count}, Low per bin: {lowPerBin}, High per bin: {highPerBin}, {string.Join(", ", bins)}");
 		foreach (var bin in bins)
 		{
@@ -129,7 +129,7 @@ public sealed class TestEqualDistribution
 		new(){ PropertyValue=9, Count=100 },
 	};
 		Console.WriteLine(string.Join(", ", binItems));
-		_ = await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		_ = await DistributeEquallyAsync(binItems, async (count, from, to) =>
 		{
 			return await Task.FromResult(count);
 		});
@@ -162,7 +162,7 @@ new () { PropertyValue=19, Count=9},
 new () { PropertyValue=20, Count=4},
 };
 		Console.WriteLine(string.Join(", ", binItems));
-		_ = await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		_ = await DistributeEquallyAsync(binItems, async (count, from, to) =>
 		{
 			return await Task.FromResult(count);
 		});
@@ -181,7 +181,7 @@ new () { PropertyValue=20, Count=4},
 		new(){ PropertyValue="C", Count=5 },
 	};
 		Console.WriteLine(string.Join(", ", binItems));
-		_ = await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		_ = await DistributeEquallyAsync(binItems, async (count, from, to) =>
 		{
 			return await Task.FromResult(count);
 		});
@@ -199,7 +199,7 @@ new () { PropertyValue=20, Count=4},
 			.Select(g=> new BinItem<DateOnly>() { PropertyValue=g.Key, Count=g.Count() })
 			.ToListAsync(TestContext.CancellationToken);
 		Console.WriteLine(string.Join(", ", bins));
-		_ = await EqualDistribution.DistributeEquallyAsync(bins, async (count, from, to) =>
+		_ = await DistributeEquallyAsync(bins, async (count, from, to) =>
 		{
 			var moved = 0;
 			(await context.ProcessingItems
@@ -233,7 +233,7 @@ new () { PropertyValue=20, Count=4},
 			.ToListAsync(TestContext.CancellationToken);
 		Console.WriteLine(string.Join(", ", bins));
 		var alreadyMoved=new HashSet<int>();
-		_ = await EqualDistribution.DistributeEquallyAsync(bins, async (count, from, to) =>
+		_ = await DistributeEquallyAsync(bins, async (count, from, to) =>
 		{
 			var moved = 0;
 			(await context.ProcessingItems
