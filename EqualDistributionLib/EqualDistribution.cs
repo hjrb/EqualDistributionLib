@@ -1,7 +1,4 @@
-﻿
-
-namespace EqualDistributionLib;
-
+﻿namespace EqualDistributionLib;
 
 /// <summary>
 /// this class offer two methods to make the distribution of items to bins as equal as possible
@@ -10,7 +7,6 @@ namespace EqualDistributionLib;
 /// </summary>
 public class EqualDistribution
 {
-
 	/// <summary>
 	/// Represents an item within a bin, associating a property value with its occurrence count.
 	/// </summary>
@@ -26,7 +22,6 @@ public class EqualDistribution
 		public override bool Equals(object? obj) => obj is BinItem<TPropertyValue> other && other.PropertyValue.Equals(this.PropertyValue) && other.Count == this.Count;
 
 	}
-
 
 	/// <summary>
 	/// adds items from the items collection to the bins trying to make the distribution equal
@@ -81,19 +76,30 @@ public class EqualDistribution
 	/// You have DB table processingTable with a column "processingDate". 
 	/// You have a huge number of items and want to distribute the processing across n-dates equally.
 	/// <![CDATA[
-	///		var grouped=processingTable
-	///			.GroupBy(a=>a.processingDate)
-	///			.Select(a=>new BinItem() {Key=a.Key, Count=a.Count})
-	///			.ToArray()
-	///		var alreadyMoved=new HashSet<int>();
-	///			await EqualDistribution(grouped, (from,to)=> {
-	///				// optional
-	///				var itemToMove=processingTable.Where(a=>a.processingDate==from && !alreadyMoved.Contains(item.ID)).First();
-	///				itemToMove.processingDate=to; // moves the processingDate
-	///				alreadyMoved.Add(itemToMove.ID);
-	///			}
-	///		);
-	///		await dbContext.SaveChangesAsync();
+	/// using var dbContext = ProcessingDbContext.CreateInMemoryContext();
+	/// var bins = await dbContext.ProcessingItems
+	/// 	.GroupBy(a=>a.ProcessingDate)
+	/// 	.Select(g=> new BinItem<DateOnly>() { PropertyValue=g.Key, Count=g.Count() })
+	/// 	.ToListAsync(TestContext.CancellationToken);
+	/// Console.WriteLine(string.Join(", ", bins));
+	/// var alreadyMoved=new HashSet<int>();
+	/// 	_ = await EqualDistribution.DistributeEquallyAsync(bins, async (count, from, to) =>
+	/// 	{
+	/// 		var moved = 0;
+	/// 		(await dbContext.ProcessingItems
+	/// 				.Where(a => a.ProcessingDate == from && !alreadyMoved.Contains(a.Id))
+	/// 				.Take(count)
+	/// 				.ToListAsync(TestContext.CancellationToken))
+	/// 				.ForEach(itemToMove =>
+	/// 				{
+	/// 					itemToMove.ProcessingDate = to;
+	/// 					moved++;
+	/// 					alreadyMoved.Add(itemToMove.Id);
+	/// 				});
+	/// 		return await Task.FromResult(moved);
+	/// 	});
+	///
+	/// await dbContext.SaveChangesAsync();
 	///	]]>
 	/// <typeparam name="TPropertyValue">The type that identifies each bin. Must be non-null and support equality comparison.</typeparam>
 	/// <param name="bins">A collection of tuples, each containing a bin identifier and the current item count for that bin.</param>
