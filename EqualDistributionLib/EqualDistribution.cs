@@ -1,4 +1,4 @@
-﻿using System.Numerics;
+﻿
 
 namespace EqualDistributionLib;
 
@@ -29,8 +29,8 @@ public class EqualDistribution
 
 
 	/// <summary>
-	/// adds items from the itmes collection to the bins trying to make the distribution equal
-	/// Note: for items which property value does NOT match any bin the item is added to the bin with the least nummber of items
+	/// adds items from the items collection to the bins trying to make the distribution equal
+	/// Note: for items which property value does NOT match any bin the item is added to the bin with the least number of items
 	/// else it will be to the matching bin
 	/// </summary>
 	/// <typeparam name="TItem"></typeparam>
@@ -53,7 +53,7 @@ public class EqualDistribution
 			// get the bin for the items key
 			if (bins.ContainsKey(key))
 			{
-				// add the item to the bin if it not alreay in the bin
+				// add the item to the bin if it not already in the bin
 				if (!bins[key].Contains(item, equalityComparer))
 				{
 					bins[key].Add(item);
@@ -75,7 +75,7 @@ public class EqualDistribution
 	/// The method attempts to minimize the difference in item counts between bins by repeatedly invoking
 	/// the provided moveItem delegate. The actual number of items moved depends on the initial distribution. The method
 	/// does not guarantee perfect balance if the total number of items cannot be evenly divided among bins.
-	/// This approach does not actuall move the items but call the delegate moveItem so the caller can implement the actual move logic.
+	/// This approach does not actually move the items but call the delegate moveItem so the caller can implement the actual move logic.
 	/// This is well suited if the items have not been loaded to memory yet, e.g. in database scenario
 	/// Example:
 	/// You have DB table processingTable with a column "processingDate". 
@@ -165,7 +165,7 @@ public class EqualDistribution
 	/// The correlation item to bin is determined the Func PropertySelector.
 	/// If there is no bin for an item, it is added to the bin with the least items.
 	/// Then the items are redistributed to achieve equal distribution across bins.
-	/// That means: afte the distribution there will be items that are in bin that does NOT match the property value
+	/// That means: after the distribution there will be items that are in bin that does NOT match the property value
 	/// Notes: this approach will 
 	/// 1.) add the items in the source items collection to the bins if they are missing 
 	/// 2.) actually move the items
@@ -191,7 +191,7 @@ public class EqualDistribution
 
 		// Phase 1 add the items not assigned to any bin
 		AddMissingItems(items, PropertySelector, bins, equalityComparer);
-		// Phase 2: equaly distribut items
+		// Phase 2: equally distribute items
 		var movedItems=new List<(TItem Item, TPropertyValue Property)>();
 		_ = await DistributeEquallyAsync(
 				bins: bins.Select(a => new BinItem<TPropertyValue>() { PropertyValue = a.Key, Count = a.Value.Count }),
