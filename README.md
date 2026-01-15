@@ -7,7 +7,7 @@ a library in C# that helps distributing items equally to bins based on a propert
  You are use EF core to access the DB.
  ```
 		var grouped=dbContext.ProcessingTable
-			.GroupBy(a=>a.ProcessingDate)
+			.GroupBy(a=>a.ProcessingDate) // ProcesingDate must not be null
 			.Select(g=>new BinItem() {Key=g.Key, Count=g.Count()})
 			.ToArray()
 		var alreadyMoved=new HashSet<int>();
