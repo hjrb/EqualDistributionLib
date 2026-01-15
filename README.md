@@ -2,8 +2,8 @@
 a library in C# that helps distributing items equally to bins based on a property value.
 
 # Example
- You have DB table processingTable with a column "processingDate". 
- You have a huge number of items and want to distribute the processing across n-dates equally.
+ You have a DB table processingTable with a column "processingDate". 
+ You have a huge number of items or processig an item requires many resources and want to distribute the processing across n-dates equally.
  You are use EF core to access the DB.
  ```
 		var grouped=dbContext.ProcessingTable
