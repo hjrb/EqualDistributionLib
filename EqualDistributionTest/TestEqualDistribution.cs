@@ -89,27 +89,33 @@ public sealed class TestEqualDistribution
 			items.ElementAt(Random.Shared.Next(0, items.Count)).key = Random.Shared.Next(0, 10);
 		}
 		bins = items
-			.GroupBy(a => a.key)
-			.ToDictionary(g => g.Key, g => (ICollection<TestItem>)g.ToList());
+				.GroupBy(a => a.key)
+				.ToDictionary(g => g.Key, g => (ICollection<TestItem>)g.ToList());
 		notInBin = items.Count(a => !bins.ContainsKey(a.key));
 		EqualDistribution.DumpBins(bins, Console.WriteLine);
 		var result=await EqualDistribution.DistributeEquallyAsync(items, a => a.key, bins, null);
+		EqualDistribution.DumpBins(bins, Console.WriteLine);
+		AssertDistribution(bins);
+		var mustUpdateKey=result.ToList();
+		Console.WriteLine($"Items not in bin: {notInBin}, items to update key: {mustUpdateKey.Count()}");
+	}
+
+	private static void AssertDistribution(Dictionary<int, ICollection<TestItem>> bins)
+	{
 		var totalItems=bins.Values.Sum(b=>b.Count);
 		var lowPerBin=Math.Round(totalItems/(double)bins.Count, MidpointRounding.ToNegativeInfinity);
 		var highPerBin=Math.Round(totalItems/(double)bins.Count, MidpointRounding.ToPositiveInfinity);
-		EqualDistribution.DumpBins(bins, Console.WriteLine);
+
 		foreach (var bin in bins)
 		{
 			Assert.IsTrue(bin.Value.Count == lowPerBin || bin.Value.Count == highPerBin);
 		}
-		var mustUpdateKey=result.ToList();
-		Console.WriteLine($"Items not in bin: {notInBin}, items to update key: {mustUpdateKey.Count()}");
-
 	}
+
 	[TestMethod]
-public async Task TestMethodDistributeAsync3()
-{
-	var binItems=new List<BinItem<int>>()
+	public async Task TestMethodDistributeAsync3()
+	{
+		var binItems=new List<BinItem<int>>()
 	{
 		new(){ PropertyValue=0, Count=114 },
 		new(){ PropertyValue=1, Count=100 },
@@ -122,9 +128,29 @@ public async Task TestMethodDistributeAsync3()
 		new(){ PropertyValue=8, Count=100 },
 		new(){ PropertyValue=9, Count=100 },
 	};
-	await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to)=>{
-		return await Task.FromResult(count);
+		Console.WriteLine(string.Join(", ", binItems));
+		await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		{
+			return await Task.FromResult(count);
 		});
+		Console.WriteLine(string.Join(", ", binItems));
+	}
 
-}
+	[TestMethod]
+	public async Task TestMethodDistributeAsync4()
+	{
+		var binItems=new List<BinItem<string>>()
+	{
+		new(){ PropertyValue="A", Count=11 },
+		new(){ PropertyValue="B", Count=3 },
+		new(){ PropertyValue="C", Count=5 },
+	};
+		Console.WriteLine(string.Join(", ", binItems));
+		await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		{
+			return await Task.FromResult(count);
+		});
+		Console.WriteLine(string.Join(", ", binItems));
+
+	}
 }
