@@ -9,9 +9,9 @@
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <PackageId>EqualDistributionLib</PackageId>
     <Title>EqualDistributionLib</Title>
-    <Version>1.0.0</Version>
+    <Version>1.0.1</Version>
     <Authors>Hunny Reister</Authors>
-    <Company>Hunny Reister</Company>
+    <Company>No corp</Company>
     <Description>Utilities to distribute items across bins as equally as possible.</Description>
     <PackageTags>distribution;balancing;bins;utilities</PackageTags>
     <RepositoryUrl>https://github.com/hjrb/EqualDistributionLib</RepositoryUrl>
