@@ -1,5 +1,7 @@
 ﻿using EqualDistributionLib;
 
+using Microsoft.EntityFrameworkCore;
+
 using static EqualDistributionLib.EqualDistribution;
 
 namespace EqualDistributionTest;
@@ -7,6 +9,7 @@ namespace EqualDistributionTest;
 [TestClass]
 public sealed class TestEqualDistribution
 {
+	public TestContext TestContext { get; set; }
 
 	class TestItem(int key, string value) { public int key=key; public string value=value; }
 	[AssemblyInitialize]
@@ -64,13 +67,9 @@ public sealed class TestEqualDistribution
 		notInBin = items.Count(a => !bins.ContainsKey(a.key));
 		EqualDistribution.DumpBins(bins, Console.WriteLine);
 		var result=await EqualDistribution.DistributeEquallyAsync(items, a => a.key, bins, null);
-		var totalItems=bins.Values.Sum(b=>b.Count);
-		var targetPerBin=totalItems/bins.Count;
 		EqualDistribution.DumpBins(bins, Console.WriteLine);
-		foreach (var bin in bins)
-		{
-			Assert.IsTrue(bin.Value.Count == targetPerBin || bin.Value.Count == targetPerBin + 1);
-		}
+		AssertDistribution(bins.GroupBy(a => a.Key).Select(g => new BinItem<int> { PropertyValue = g.Key, Count = g.Count() }).ToList());
+
 		var mustUpdateKey=result.ToList();
 		Assert.IsLessThanOrEqualTo(notInBin, mustUpdateKey.Count());
 		Console.WriteLine($"Items not in bin: {notInBin}, items to update key: {mustUpdateKey.Count()}");
@@ -95,22 +94,23 @@ public sealed class TestEqualDistribution
 		EqualDistribution.DumpBins(bins, Console.WriteLine);
 		var result=await EqualDistribution.DistributeEquallyAsync(items, a => a.key, bins, null);
 		EqualDistribution.DumpBins(bins, Console.WriteLine);
-		AssertDistribution(bins);
+		AssertDistribution(bins.GroupBy(a => a.Key).Select(g => new BinItem<int> { PropertyValue = g.Key, Count = g.Count() }).ToList());
 		var mustUpdateKey=result.ToList();
 		Console.WriteLine($"Items not in bin: {notInBin}, items to update key: {mustUpdateKey.Count()}");
 	}
 
-	private static void AssertDistribution(Dictionary<int, ICollection<TestItem>> bins)
+	private static void AssertDistribution<T>(List<BinItem<T>> bins) where T : notnull, IEquatable<T>
 	{
-		var totalItems=bins.Values.Sum(b=>b.Count);
-		var lowPerBin=Math.Round(totalItems/(double)bins.Count, MidpointRounding.ToNegativeInfinity);
-		var highPerBin=Math.Round(totalItems/(double)bins.Count, MidpointRounding.ToPositiveInfinity);
-
+		var totalItems= EqualDistribution.TotalItemsCount(bins);
+		var lowPerBin= EqualDistribution.MinItemsPerBin(bins);
+		var highPerBin=EqualDistribution.MaxItemsPerBin(bins);
+		Console.WriteLine($"Total items: {totalItems}, Bins: {bins.Count}, Low per bin: {lowPerBin}, High per bin: {highPerBin}, {string.Join(", ",bins)}");
 		foreach (var bin in bins)
 		{
-			Assert.IsTrue(bin.Value.Count == lowPerBin || bin.Value.Count == highPerBin);
+			Assert.IsTrue(bin.Count == lowPerBin || bin.Count == highPerBin);
 		}
 	}
+
 
 	[TestMethod]
 	public async Task TestMethodDistributeAsync3()
@@ -129,11 +129,46 @@ public sealed class TestEqualDistribution
 		new(){ PropertyValue=9, Count=100 },
 	};
 		Console.WriteLine(string.Join(", ", binItems));
-		await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		_ = await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
 		{
 			return await Task.FromResult(count);
 		});
+		AssertDistribution(binItems);
 		Console.WriteLine(string.Join(", ", binItems));
+
+	}
+
+	[TestMethod]
+	public async Task TestMethodDistributeAsync5()
+	{
+		var binItems=new List<BinItem<int>>()
+	{
+new () { PropertyValue=01, Count=4 },
+new () { PropertyValue=02, Count=5 },
+new () { PropertyValue=05, Count=7},
+new () { PropertyValue=06, Count=4},
+new () { PropertyValue=08, Count=3},
+new () { PropertyValue=09, Count=5},
+new () { PropertyValue=10, Count=6},
+new () { PropertyValue=11, Count=5},
+new () { PropertyValue=12, Count=5},
+new () { PropertyValue=13, Count=4},
+new () { PropertyValue=14, Count=2},
+new () { PropertyValue=15, Count=8},
+new () { PropertyValue=16, Count=3},
+new () { PropertyValue=17, Count=6},
+new () { PropertyValue=18, Count=6},
+new () { PropertyValue=19, Count=9},
+new () { PropertyValue=20, Count=4},
+};
+		Console.WriteLine(string.Join(", ", binItems));
+		_ = await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		{
+			return await Task.FromResult(count);
+		});
+		AssertDistribution(binItems);
+		Console.WriteLine(string.Join(", ", binItems));
+
 	}
 
 	[TestMethod]
@@ -146,11 +181,81 @@ public sealed class TestEqualDistribution
 		new(){ PropertyValue="C", Count=5 },
 	};
 		Console.WriteLine(string.Join(", ", binItems));
-		await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
+		_ = await EqualDistribution.DistributeEquallyAsync(binItems, async (count, from, to) =>
 		{
 			return await Task.FromResult(count);
 		});
+		AssertDistribution(binItems);
 		Console.WriteLine(string.Join(", ", binItems));
 
 	}
+
+	[TestMethod]
+	public async Task TestMethodDistributeAsyncDB1()
+	{
+		using var context = ProcessingDbContext.CreateInMemoryContext();
+		var bins = await context.ProcessingItems
+			.GroupBy(a=>a.ProcessingDate)
+			.Select(g=> new BinItem<DateOnly>() { PropertyValue=g.Key, Count=g.Count() })
+			.ToListAsync(TestContext.CancellationToken);
+		Console.WriteLine(string.Join(", ", bins));
+		_ = await EqualDistribution.DistributeEquallyAsync(bins, async (count, from, to) =>
+		{
+			var moved = 0;
+			(await context.ProcessingItems
+					.Where(a => a.ProcessingDate == from)
+					.Take(count)
+					.ToListAsync(TestContext.CancellationToken))
+					.ForEach(itemToMove =>
+					{
+						itemToMove.ProcessingDate = to;
+						moved++;
+					});
+			// must save here or the next select will get out of synch results
+			await context.SaveChangesAsync();
+			return await Task.FromResult(moved);
+		});
+		// re select
+		bins = await context.ProcessingItems.GroupBy(a => a.ProcessingDate)
+			.Select(g => new BinItem<DateOnly>() { PropertyValue = g.Key, Count = g.Count() })
+			.ToListAsync(TestContext.CancellationToken);
+		Console.WriteLine(string.Join(", ", bins));
+		AssertDistribution(bins);
+	}
+
+		[TestMethod]
+	public async Task TestMethodDistributeAsyncDB2()
+	{
+		using var context = ProcessingDbContext.CreateInMemoryContext();
+		var bins = await context.ProcessingItems
+			.GroupBy(a=>a.ProcessingDate)
+			.Select(g=> new BinItem<DateOnly>() { PropertyValue=g.Key, Count=g.Count() })
+			.ToListAsync(TestContext.CancellationToken);
+		Console.WriteLine(string.Join(", ", bins));
+		var alreadyMoved=new HashSet<int>();
+		_ = await EqualDistribution.DistributeEquallyAsync(bins, async (count, from, to) =>
+		{
+			var moved = 0;
+			(await context.ProcessingItems
+					.Where(a => a.ProcessingDate == from && !alreadyMoved.Contains(a.Id))
+					.Take(count)
+					.ToListAsync(TestContext.CancellationToken))
+					.ForEach(itemToMove =>
+					{
+						itemToMove.ProcessingDate = to;
+						moved++;
+						alreadyMoved.Add(itemToMove.Id);
+					});
+			return await Task.FromResult(moved);
+		});
+			// must save here or the next select will get out of synch results
+			await context.SaveChangesAsync();
+		// re select
+		bins = await context.ProcessingItems.GroupBy(a => a.ProcessingDate)
+			.Select(g => new BinItem<DateOnly>() { PropertyValue = g.Key, Count = g.Count() })
+			.ToListAsync(TestContext.CancellationToken);
+		Console.WriteLine(string.Join(", ", bins));
+		AssertDistribution(bins);
+	}
+
 }
