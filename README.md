@@ -43,11 +43,13 @@ await EqualDistribution(grouped, (count, from,to)=> {
 	.ForEach(itemToMove=> {
 		itemToMove.processingDate=to; // moves the processingDate
 		// required or the next select will return out-of-synch results
-		// altenative is to call SaveChangesAsynch() at the end of every move operation: slower but will keep partial improvements in case of some error saving all changes all at once
+
 	  		  alreadyMoved.Add(itemToMove.ID); 
 			moved++;
 	    });
-		return moved;
+		// altenative is to call SaveChangesAsynch() at the end of every move operation: slower but will keep partial improvements in case of some error saving all changes all at once
+		// await SaveChangesAsync();
+return moved;
 });
 await dbContext.SaveChangesAsync();
 
