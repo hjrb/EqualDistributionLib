@@ -12,14 +12,17 @@ a library in C# that helps distributing items equally to bins based on a propert
 			.ToArray()
 		var alreadyMoved=new HashSet<int>();
 		await EqualDistribution(grouped, (count, from,to)=> {
-	  	processingTable
+			var moved=0;
+	  	(await processingTable
         .Where(a=>a.ProcessingDate==from && !alreadyMoved.Contains(a.Id))
         .Take(count)
-        .ToList()
+        .ToListAsync())
         .ForEach(itemToMove=> {
   		    itemToMove.processingDate=to; // moves the processingDate
     		  alreadyMoved.Add(itemToMove.ID);
+			moved++;
         });
+		return moved;
      });
 		await dbContext.SaveChangesAsync();
 	```
