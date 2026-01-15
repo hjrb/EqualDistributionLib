@@ -104,7 +104,7 @@ public sealed class TestEqualDistribution
 		var totalItems= EqualDistribution.TotalItemsCount(bins);
 		var lowPerBin= EqualDistribution.MinItemsPerBin(bins);
 		var highPerBin=EqualDistribution.MaxItemsPerBin(bins);
-		Console.WriteLine($"Total items: {totalItems}, Bins: {bins.Count}, Low per bin: {lowPerBin}, High per bin: {highPerBin}, {string.Join(", ",bins)}");
+		Console.WriteLine($"Total items: {totalItems}, Bins: {bins.Count}, Low per bin: {lowPerBin}, High per bin: {highPerBin}, {string.Join(", ", bins)}");
 		foreach (var bin in bins)
 		{
 			Assert.IsTrue(bin.Count == lowPerBin || bin.Count == highPerBin);
@@ -223,7 +223,7 @@ new () { PropertyValue=20, Count=4},
 		AssertDistribution(bins);
 	}
 
-		[TestMethod]
+	[TestMethod]
 	public async Task TestMethodDistributeAsyncDB2()
 	{
 		using var context = ProcessingDbContext.CreateInMemoryContext();
@@ -248,8 +248,8 @@ new () { PropertyValue=20, Count=4},
 					});
 			return await Task.FromResult(moved);
 		});
-			// must save here or the next select will get out of synch results
-			await context.SaveChangesAsync();
+		// must save here or the next select will get out of synch results
+		await context.SaveChangesAsync();
 		// re select
 		bins = await context.ProcessingItems.GroupBy(a => a.ProcessingDate)
 			.Select(g => new BinItem<DateOnly>() { PropertyValue = g.Key, Count = g.Count() })
