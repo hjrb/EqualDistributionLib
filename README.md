@@ -19,7 +19,9 @@ a library in C# that helps distributing items equally to bins based on a propert
         .ToListAsync())
         .ForEach(itemToMove=> {
   		    itemToMove.processingDate=to; // moves the processingDate
-    		  alreadyMoved.Add(itemToMove.ID); // required or the next select will return out-of-synch results
+			// required or the next select will return out-of-synch results
+			// altenative is to call SaveChangesAsynch() at the end of every move operation: slower but will keep partial improvements in case of some error saving all changes all at once
+    		  alreadyMoved.Add(itemToMove.ID); 
 			moved++;
         });
 		return moved;
